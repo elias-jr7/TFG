@@ -1,0 +1,11 @@
+{
+  "name": "bun",
+  "license": "MIT",
+  "dependencies": {
+    "bcryptjs": "^3.0.2",
+    "hono": "^4.6.10"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.0.12"
+  }
+}
