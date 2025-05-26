@@ -18,24 +18,20 @@ const users = new Hono()
 
 users.post('/register', async (c) => {
   const { username, email, password } = await c.req.json()
-
   const hashed = bcrypt.hashSync(password, 10)
-
   try {
-      const checkStmt =db.prepare('SELECT * FROM users WHERE email = ?')
-      const existingUser = checkStmt.get(email)
-  
+      const query_check =db.prepare('SELECT * FROM users WHERE email = ?')
+      const existingUser = query_check.get(email)
       if (existingUser) {
         return c.json({
           success: false,
           error: 'Ya existe una cuenta con ese correo electrónico',
         }, 409) 
       }
-  
-      const insertStmt = db.prepare(
+      const query_register = db.prepare(
       'INSERT INTO users (username, email, password, role) VALUES (?, ?, ?, ?)'
     )
-    insertStmt.run(username, email, hashed, 'usuario_no_verificado')
+    query_register.run(username, email, hashed, 'usuario_no_verificado')
     return c.json({
       success: true,
       message: 'Usuario registrado correctamente',
@@ -45,8 +41,6 @@ users.post('/register', async (c) => {
         role: 'usuario_no_verificado'
       }
     })
-    
-
   } catch (e) {
     return c.json({
       success: false,
@@ -58,18 +52,15 @@ users.post('/register', async (c) => {
 users.post('/login', async (c) => {
   const { email, password } = await c.req.json()
   try {
-    const stmt = db.prepare('SELECT * FROM users WHERE email = ?')
-    const user = stmt.get(email) as User | undefined
-
+    const query_login = db.prepare('SELECT * FROM users WHERE email = ?')
+    const user = query_login.get(email) as User | undefined
     if (!user) {
       return c.json({ success: false, error: 'Usuario no encontrado' }, 404)
     }
-
-    const passwordMatch = bcrypt.compareSync(password, user.password)
-    if (!passwordMatch) {
+    const same_password = bcrypt.compareSync(password, user.password)
+    if (!same_password) {
       return c.json({ success: false, error: 'Contraseña incorrecta' }, 401)
     }
-
     return c.json({
       success: true,
       message: 'Login exitoso',
@@ -83,29 +74,26 @@ users.post('/login', async (c) => {
   } catch (err) {
     return c.json({
       success: false,
-      error: 'Error interno del servidor',
-      details: err instanceof Error ? err.message : String(err)
+      error: 'Error en el servidor',
     }, 500)
   }
 })
 
 users.post('/solicitud', async (c) => {
-  const { username, email, mensaje, type } = await c.req.json()
+  const { username, email, message, type } = await c.req.json()
 
   try {
-    const checkStmt = db.prepare('SELECT * FROM solicitudes WHERE email = ?')
-    const existing = checkStmt.get(email)
+    const query_solicitud = db.prepare('SELECT * FROM solicitudes WHERE email = ?')
+    const existing = query_solicitud.get(email)
 
     if (existing) {
       return c.json({
         success: false,
         error:`Ya has enviado una solicitud con este correo`
-
       }, 409)
     }
-
-    const insertStmt = db.prepare('INSERT INTO solicitudes (username, email, mensaje, type) VALUES (?, ?, ?, ?)')
-    insertStmt.run(username, email, mensaje, type)
+    const query_insert = db.prepare('INSERT INTO solicitudes (username, email, mensaje, type) VALUES (?, ?, ?, ?)')
+    query_insert.run(username, email, message, type)
 
     return c.json({
       success: true,
@@ -121,8 +109,8 @@ users.post('/solicitud', async (c) => {
 
 users.get('/solicitudes', (c) => {
   try {
-    const solicitudesStmt = db.prepare('SELECT * FROM solicitudes')
-    const solicitudes = solicitudesStmt.all() 
+    const query_solicitudes = db.prepare('SELECT * FROM solicitudes')
+    const solicitudes = query_solicitudes.all() 
 
     return c.json({
       success: true,
@@ -140,25 +128,22 @@ users.post('/aceptar-solicitud', async (c) => {
   const { username, type } = await c.req.json();
 
   try {
-      const userStmt = db.prepare('SELECT * FROM users WHERE username = ?');
-      const user = userStmt.get(username) as User | undefined; 
-      
-      const updateStmt = db.prepare('UPDATE users SET role = ? WHERE username = ?');
+      const query_accept_update = db.prepare('UPDATE users SET role = ? WHERE username = ?');
 
       if(type=="contenido"){
-        updateStmt.run('gestor_contenido', username);
+        query_accept_update.run('gestor_contenido', username);
       }else{
-        updateStmt.run('usuario_verificado', username);
+        query_accept_update.run('usuario_verificado', username);
       }
       
-      
-      const deleteSolicitudStmt = db.prepare('DELETE FROM solicitudes WHERE username = ?');
-      deleteSolicitudStmt.run(username);
+      const query_delete = db.prepare('DELETE FROM solicitudes WHERE username = ?');
+      query_delete.run(username);
 
       return c.json({
           success: true,
           message: 'Rol actualizado y solicitud eliminada correctamente',
       });
+
   } catch (e) {
       return c.json({
           success: false,
@@ -172,8 +157,8 @@ users.post('/rechazar-solicitud', async (c) => {
   const { username } = await c.req.json(); 
 
   try {    
-    const deleteStmt = db.prepare('DELETE FROM solicitudes WHERE username = ?');
-    deleteStmt.run(username);
+    const query_delete = db.prepare('DELETE FROM solicitudes WHERE username = ?');
+    query_delete.run(username);
 
     return c.json({
       success: true,

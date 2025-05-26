@@ -37,13 +37,13 @@ function scrollToTop()  {
     });
 }
 
-function cabecera() {
+function header() {
     fetch("./includes/cabecera.html") 
       .then((response) => response.text()) 
       .then((data) => {
-        const contenedorCabecera = document.getElementById("header") 
-        if (contenedorCabecera) {
-          contenedorCabecera.innerHTML = data   
+        const headerContainer = document.getElementById("header") 
+        if (headerContainer) {
+          headerContainer.innerHTML = data   
           
           const username = getCookie("username")
           const usernameDisplay = document.getElementById("usernameDisplay")
@@ -86,9 +86,9 @@ function footer() {
     fetch('./includes/footer.html')  
         .then(response => response.text())  
         .then(data => {
-            const contenedorFooter = document.getElementById('footer');  
-            if (contenedorFooter) {
-                contenedorFooter.innerHTML = data;  
+            const footerContainer = document.getElementById('footer');  
+            if (footerContainer) {
+                footerContainer.innerHTML = data;  
             } else {
                 console.error('El elemento con id="footer" no existe en el DOM.');
             }
@@ -138,8 +138,8 @@ async function stackai() {
         }
         finalText += '\n'; 
     }
-    const respuestaDiv = document.getElementById("respuesta-api");
-    respuestaDiv.innerHTML = `<img src="./img/cargando.gif" width="70" alt="Cargando..."> <br> ⏳ Cargando`;
+    const answerDiv = document.getElementById("respuesta-api");
+    answerDiv.innerHTML = `<img src="./img/cargando.gif" width="70" alt="Cargando..."> <br> ⏳ Cargando`;
     const tokens = await getTokens();
     if (!tokens) {
         console.error("No se pudieron obtener los tokens.");
@@ -170,19 +170,98 @@ async function stackai() {
             .replace(/\*\*(.*?)\*\*/g, "<b>$1</b>")  // Convertir **texto** en negrita a <b>texto</b>
             .replace(/```([\s\S]*?)```/g, '<pre style="background-color: rgb(6, 5, 87); color: white; padding: 10px; border-radius: 5px; white-space: pre-wrap;">$1</pre>');  // Formatear código con fondo azul oscuro
 
-        respuestaDiv.innerHTML = formattedText; 
+        answerDiv.innerHTML = formattedText; 
 
     } catch (error) {
-        respuestaDiv.innerHTML = `❌ Error: ${error.message}`;
+        answerDiv.innerHTML = `❌ Error: ${error.message}`;
     }
 }
 
-function Profesor_Word() {
+async function stackaiOpen() {
+    const inputText = document.getElementById("consulta-api").value.trim();
+    if(!getCookie('inicio_sesion')){
+        alert("⚠️ Debes iniciar sesión para poder realizar consultas");
+        return;
+    }
+    if (inputText === "") {
+        alert("⚠️ Por favor, ingresa una consulta antes de continuar.");
+        return;
+    }
+    let selectedActivity = document.querySelector(".dropdown-menu .dropdown-item-activity.active");
+    if (!selectedActivity) { 
+        alert("⚠️ Por favor, selecciona un tipo de actividad antes de generar la respuesta.");
+        return;
+    }
+    let finalText=inputText;
+    if (selectedActivity) {
+        let activityText = '';
+        switch (selectedActivity.id) {
+            case "btn-vacio":
+                activityText = "No me generes ninguna actividad, dame solo la información";
+                break;
+            case "btn-preguntas":
+                activityText = "Generame una actividad con Preguntas abiertas";
+                break;
+            case "btn-test":
+                activityText = "Generame una actividad con Preguntas tipo test";
+                break;
+            case "btn-completar":
+                activityText = "Generame una actividad con Completar un código";
+                break;
+            default:
+                break;
+        }
     
-    const respuestaDiv = document.getElementById("respuesta-api");
-    const respuestaHTML = respuestaDiv.innerHTML.trim(); 
+        if (activityText) {
+            finalText += `, ${activityText}`; 
+        }
+        finalText += '\n'; 
+    }
+    const answerDiv = document.getElementById("respuesta-api");
+    answerDiv.innerHTML = `<img src="./img/cargando.gif" width="70" alt="Cargando..."> <br> ⏳ Cargando`;
+    const tokens = await getTokens();
+    if (!tokens) {
+        console.error("No se pudieron obtener los tokens.");
+        return;
+    }
 
-    if (respuestaHTML === "" || respuestaHTML.startsWith("⏳") || respuestaHTML.startsWith("❌")) {
+    try {
+        const response = await fetch(
+            "https://api.stack-ai.com/inference/v0/run/11ddb42a-48fd-4725-a344-f832a3e5ca29/683327cbee9ef9d9fae80536",
+            {
+                headers: {
+                    'Authorization': `Bearer ${tokens.stack_token}`,
+                    'Content-Type': 'application/json'
+                },
+                method: "POST",
+                body: JSON.stringify({"user_id": "index_query", "in-0": finalText}),
+            }
+        );
+        
+        const result = await response.json();
+
+        if (!result.outputs || !result.outputs["out-0"]) {
+            throw new Error("Respuesta inesperada de la API");
+        }
+
+        let formattedText = result.outputs["out-0"]
+            .replace(/\n/g, "<br>")  // Convertir saltos de línea a <br>
+            .replace(/\*\*(.*?)\*\*/g, "<b>$1</b>")  // Convertir **texto** en negrita a <b>texto</b>
+            .replace(/```([\s\S]*?)```/g, '<pre style="background-color: rgb(6, 5, 87); color: white; padding: 10px; border-radius: 5px; white-space: pre-wrap;">$1</pre>');  // Formatear código con fondo azul oscuro
+
+        answerDiv.innerHTML = formattedText; 
+
+    } catch (error) {
+        answerDiv.innerHTML = `❌ Error: ${error.message}`;
+    }
+}
+
+function Teacher_Word() {
+    
+    const answerDiv = document.getElementById("respuesta-api");
+    const answerHTML = answerDiv.innerHTML.trim(); 
+
+    if (answerHTML === "" || answerHTML.startsWith("⏳") || answerHTML.startsWith("❌")) {
         alert("No hay una respuesta válida para descargar.");
         return;
     }
@@ -192,7 +271,7 @@ function Profesor_Word() {
         <head><meta charset="UTF-8"></head>
         <body>
             <h1>GENERADOR DE ESCENARIOS DE APRENDIZAJE</h1>
-            ${respuestaHTML} <!-- Se usa respuestaHTML para mantener el formato -->
+            ${answerHTML} <!-- Se usa answerHTML para mantener el formato -->
         </body>
         </html>
     `;
@@ -204,19 +283,19 @@ function Profesor_Word() {
     link.click(); 
 }
 
-function Alumno_Word() {
+function Student_Word() {
    
-    const respuestaDiv = document.getElementById("respuesta-api");
-    let respuestaHTML = respuestaDiv.innerHTML.trim(); 
+    const answerDiv = document.getElementById("respuesta-api");
+    let answerHTML = answerDiv.innerHTML.trim(); 
 
-    if (respuestaHTML === "" || respuestaHTML.startsWith("⏳") || respuestaHTML.startsWith("❌")) {
+    if (answerHTML === "" || answerHTML.startsWith("⏳") || answerHTML.startsWith("❌")) {
         alert("No hay una respuesta válida para descargar.");
         return;
     }
 
-    const index = respuestaHTML.indexOf("Respuestas de la actividad:");
+    const index = answerHTML.indexOf("Respuestas de la actividad:");
     if (index !== -1) {
-        respuestaHTML = respuestaHTML.substring(0, index); 
+        answerHTML = answerHTML.substring(0, index); 
     }
 
     
@@ -225,7 +304,7 @@ function Alumno_Word() {
         <head><meta charset="UTF-8"></head>
         <body>
             <h1>GENERADOR DE ESCENARIOS DE APRENDIZAJE</h1>
-            ${respuestaHTML} <!-- Contenido sin la sección de respuestas -->
+            ${answerHTML} <!-- Contenido sin la sección de respuestas -->
         </body>
         </html>
     `;
@@ -238,27 +317,27 @@ function Alumno_Word() {
     link.click(); 
 }
 
-function Profesor_PDF() {
+function Teacher_PDF() {
     
-    const respuestaDiv = document.getElementById("respuesta-api");
-    const respuestaHTML = respuestaDiv.innerHTML.trim(); 
+    const answerDiv = document.getElementById("respuesta-api");
+    const answerHTML = answerDiv.innerHTML.trim(); 
 
-    if (respuestaHTML === "" || respuestaHTML.startsWith("⏳") || respuestaHTML.startsWith("❌")) {
+    if (answerHTML === "" || answerHTML.startsWith("⏳") || answerHTML.startsWith("❌")) {
         alert("No hay una respuesta válida para descargar.");
         return;
     }
 
     
-    const contenedorPDF = document.createElement("div");
-    contenedorPDF.innerHTML = `
+    const PDFContainer = document.createElement("div");
+    PDFContainer.innerHTML = `
         <div style="text-align: center; margin-bottom: 20px;">
             <h1 style="font-size: 18px; font-weight: bold; color: #333;">GENERADOR DE ESCENARIOS DE APRENDIZAJE</h1>
         </div>
         <div style="font-size: 12px; line-height: 1.5; text-align: justify;">
-            ${respuestaHTML}
+            ${answerHTML}
         </div>
     `;
-    document.body.appendChild(contenedorPDF); 
+    document.body.appendChild(PDFContainer); 
 
    
     const opt = {
@@ -269,42 +348,36 @@ function Profesor_PDF() {
         jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
 
-    html2pdf().from(contenedorPDF).set(opt).save().then(() => {
-        document.body.removeChild(contenedorPDF);
+    html2pdf().from(PDFContainer).set(opt).save().then(() => {
+        document.body.removeChild(PDFContainer);
     });
 }
 
+function Student_PDF() {
+    const answerDiv = document.getElementById("respuesta-api");
+    let answerHTML = answerDiv.innerHTML.trim(); 
 
-
-function Alumno_PDF() {
-
-    const respuestaDiv = document.getElementById("respuesta-api");
-    let respuestaHTML = respuestaDiv.innerHTML.trim(); 
-
-    if (respuestaHTML === "" || respuestaHTML.startsWith("⏳") || respuestaHTML.startsWith("❌")) {
+    if (answerHTML === "" || answerHTML.startsWith("⏳") || answerHTML.startsWith("❌")) {
         alert("No hay una respuesta válida para descargar.");
         return;
     }
 
-    
-    const index = respuestaHTML.indexOf("Respuesta de la actividad");
+    const index = answerHTML.indexOf("Respuesta de la actividad");
     if (index !== -1) {
-        respuestaHTML = respuestaHTML.substring(0, index); 
+        answerHTML = answerHTML.substring(0, index); 
     }
-
     
-    const contenedorPDF = document.createElement("div");
-    contenedorPDF.innerHTML = `
+    const PDFContainer = document.createElement("div");
+    PDFContainer.innerHTML = `
         <div style="text-align: center; margin-bottom: 20px;">
             <h1 style="font-size: 18px; font-weight: bold; color: #333;">GENERADOR DE ESCENARIOS DE APRENDIZAJE</h1>
         </div>
         <div style="font-size: 12px; line-height: 1.5; text-align: justify;">
-            ${respuestaHTML}
+            ${answerHTML}
         </div>
     `;
-    document.body.appendChild(contenedorPDF); 
+    document.body.appendChild(PDFContainer); 
 
-    
     const opt = {
         margin:       10,
         filename:     'TFG_Stack_Alumno.pdf',
@@ -313,9 +386,8 @@ function Alumno_PDF() {
         jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
 
-    
-    html2pdf().from(contenedorPDF).set(opt).save().then(() => {
-        document.body.removeChild(contenedorPDF); 
+    html2pdf().from(PDFContainer).set(opt).save().then(() => {
+        document.body.removeChild(PDFContainer); 
     });
 }
 
@@ -384,7 +456,7 @@ async function uploadFile() {
 }
 
 
-function mostrarPopupsReporte() {
+function showPopUpReport() {
     if(!getCookie('inicio_sesion')){
         alert("⚠️ Debes iniciar sesión para poder realizar consultas y enviar reportes");
         return;
@@ -397,7 +469,7 @@ function mostrarPopupsReporte() {
     }
 }
 
-function mostrarPopupsScanner() {
+function showPopUpScanner() {
     if(!getCookie('inicio_sesion')){
         alert("⚠️ Debes iniciar sesión para poder realizar un scanner");
         return;
@@ -410,25 +482,25 @@ function mostrarPopupsScanner() {
     }
 }
 
-function cerrarPopupReporte() {
+function closePopUpReport() {
     document.getElementById("reporte-popup").classList.add("hidden");
 }
 
-function cerrarPopupSolicitudGestor() {
+function closePopUpManagerRequest() {
     document.getElementById("solicitud-gestor-popup").classList.add("hidden");
 }
 
-function cerrarPopupSolicitud() {
+function closePopUpRequest() {
     document.getElementById("solicitud-popup").classList.add("hidden");
 }
 
-async function enviarSolicitud() {
-    const mensaje = document.getElementById("solicitud-texto").value.trim();
+async function sendRequest() {
+    const message = document.getElementById("solicitud-texto").value.trim();
     const username = getCookie("username");
     const email = getCookie("email"); 
     const type = "verificacion";
 
-    if (!mensaje) {
+    if (!message) {
       alert("⚠️ Añade un mensaje para poder enviar la solicitud.");
       return;
     }
@@ -437,14 +509,14 @@ async function enviarSolicitud() {
       const res = await fetch('/api/solicitud', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, email, mensaje, type })
+        body: JSON.stringify({ username, email, message, type })
       });
   
       const result = await res.json();
   
       if (res.ok) {
         alert("✅ Solicitud enviada con éxito. Espera la verificación de tu cuenta.");
-        cerrarPopupSolicitud();
+        closePopUpRequest();
       } else {
         alert(result.error || "❌ Error al enviar la solicitud.");
       }
@@ -452,15 +524,15 @@ async function enviarSolicitud() {
       console.error("Error en la solicitud:", err);
       alert("❌ Problema de conexión con el servidor.");
     }
-  }
+}
 
-async function enviarSolicitudGestor() {
-    const mensaje = document.getElementById("solicitud-gestor-texto").value.trim();
+async function sendRequestManager() {
+    const message = document.getElementById("solicitud-gestor-texto").value.trim();
     const username = getCookie("username");
     const email = getCookie("email"); 
     const type = "contenido";
   
-    if (!mensaje) {
+    if (!message) {
       alert("⚠️ Añade un mensaje para poder enviar la solicitud.");
       return;
     }
@@ -469,14 +541,14 @@ async function enviarSolicitudGestor() {
       const res = await fetch('/api/solicitud', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, email, mensaje, type})
+        body: JSON.stringify({ username, email, message, type})
       });
   
       const result = await res.json();
   
       if (res.ok) {
         alert("✅ Solicitud enviada con éxito. Espera la verificación de tu cuenta.");
-        cerrarPopupSolicitudGestor();
+        closePopUpManagerRequest();
       } else {
         alert(result.error || "❌ Error al enviar la solicitud.");
       }
@@ -486,7 +558,7 @@ async function enviarSolicitudGestor() {
     }
   }
   
-  async function generarReportePDF() {
+  async function generatePDFReport() {
     const tokens = await getTokens();
     if (!tokens) {
         console.error("No se pudieron obtener los tokens.");
@@ -502,23 +574,23 @@ async function enviarSolicitudGestor() {
         return;
     }
 
-    const consulta = document.getElementById("consulta-api").value.trim();
-    const respuesta = document.getElementById("respuesta-api").innerText.trim();
-    const reporte = document.getElementById("reporte-texto").value.trim();
+    const query = document.getElementById("consulta-api").value.trim();
+    const answer = document.getElementById("respuesta-api").innerText.trim();
+    const report = document.getElementById("reporte-texto").value.trim();
 
-    if (!consulta || !respuesta || !reporte) {
+    if (!query || !answer || !report) {
         alert("⚠️ Asegúrate de llenar todos los campos antes de enviar el reporte.");
         return;
     }
 
-    const nombreusuario = getCookie('username');
+    const username = getCookie('username');
 
-    const fecha = new Date();
-    const dia = String(fecha.getDate()).padStart(2, '0');
-    const mes = String(fecha.getMonth() + 1).padStart(2, '0');
-    const anio = fecha.getFullYear();
-    const fechaFormateada = `${dia}_${mes}_${anio}`;
-    const nombreArchivo = `reporte_${fechaFormateada}_${nombreusuario}.pdf`;
+    const date = new Date();
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    const formattedDate = `${day}_${month}_${year}`;
+    const fullFileName = `reporte_${formattedDate}_${username}.pdf`;
 
     const contenidoPDF = `
         <div style="font-family: Arial, sans-serif; padding: 20px;">
@@ -527,37 +599,37 @@ async function enviarSolicitudGestor() {
             </h1><br>
 
             <h2 style="font-size: 18px; color: #2c3e50;">Nombre de Usuario:</h2>
-            <p style="font-size: 14px; color: Black;">${nombreusuario}</p><br>
+            <p style="font-size: 14px; color: Black;">${username}</p><br>
 
             <h2 style="font-size: 18px; color: #2c3e50;">Consulta:</h2>
-            <p style="font-size: 14px; color: Black;">${consulta}</p><br>
+            <p style="font-size: 14px; color: Black;">${query}</p><br>
 
             <h2 style="font-size: 18px; color: #2c3e50;">Respuesta de la IA:</h2>
-            <pre style="background: #ecf0f1; padding: 15px; border-radius: 8px; font-size: 13px; color: Black; white-space: pre-wrap;">${respuesta}</pre><br>
+            <pre style="background: #ecf0f1; padding: 15px; border-radius: 8px; font-size: 13px; color: Black; white-space: pre-wrap;">${answer}</pre><br>
 
             <h2 style="font-size: 18px; color: #34495e;">📝 Reporte del Usuario:</h2>
-            <p style="font-size: 14px; color: #2d3436;">${reporte}</p>
+            <p style="font-size: 14px; color: #2d3436;">${report}</p>
         </div>
     `;
 
-    const contenedorPDF = document.createElement("div");
-    contenedorPDF.innerHTML = contenidoPDF;
+    const PDFContainer = document.createElement("div");
+    PDFContainer.innerHTML = contenidoPDF;
 
     const opt = {
         margin:       [10, 10, 10, 10],
-        filename:     nombreArchivo,
+        filename:     fullFileName,
         image:        { type: 'jpeg', quality: 0.98 },
         html2canvas:  { scale: 2, useCORS: true, scrollY: 0 },
         jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
 
     try {
-        await html2pdf().from(contenedorPDF).set(opt).save();
+        await html2pdf().from(PDFContainer).set(opt).save();
 
-        const pdfBase64 = await html2pdf().from(contenedorPDF).set(opt).toPdf().output('datauristring');
+        const pdfBase64 = await html2pdf().from(PDFContainer).set(opt).toPdf().output('datauristring');
         const contenidoBase64 = pdfBase64.split(',')[1];
 
-        const url = `https://api.github.com/repos/${GITHUB_USERNAME}/${REPO_NAME}/contents/${nombreArchivo}`;
+        const url = `https://api.github.com/repos/${GITHUB_USERNAME}/${REPO_NAME}/contents/${fullFileName}`;
 
         const response = await fetch(url, {
             method: "PUT",
@@ -566,7 +638,7 @@ async function enviarSolicitudGestor() {
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({
-                message: `📌 Nuevo reporte generado: ${nombreArchivo}`,
+                message: `📌 Nuevo reporte generado: ${fullFileName}`,
                 content: contenidoBase64
             })
         });
@@ -585,9 +657,7 @@ async function enviarSolicitudGestor() {
     document.getElementById("reporte-popup").classList.add("hidden");
 }
 
-
-
-async function aceptarSolicitud(username, type) {
+async function acceptRequest(username, type) {
     try {
         const response = await fetch('/api/aceptar-solicitud', {
             method: 'POST',
@@ -601,21 +671,21 @@ async function aceptarSolicitud(username, type) {
             throw new Error(result.error || "Error al aceptar la solicitud");
         }
 
-        let rolAsignado = "";
+        let rolAsigned = "";
         if(type=="contenido"){
-            rolAsignado ="Gestor de Contenido"
+            rolAsigned ="Gestor de Contenido"
         }
         else{
-            rolAsignado ="Usuario Verificado"
+            rolAsigned ="Usuario Verificado"
         }
-        alert(`✅ Solicitud aceptada: El usuario ${username} ahora tiene el rol de ${rolAsignado}.`);
+        alert(`✅ Solicitud aceptada: El usuario ${username} ahora tiene el rol de ${rolAsigned}.`);
     } catch (error) {
         alert(`❌ Error al aceptar la solicitud: ${error.message}`);
         console.error("Error al procesar la solicitud:", error);
     }
 }
 
-async function rechazarSolicitud(username) {
+async function declineRequest(username) {
     try {
         const response = await fetch('/api/rechazar-solicitud', {
             method: 'POST',
@@ -637,11 +707,11 @@ async function rechazarSolicitud(username) {
 }
 
 
-async function cargarSolicitudes() {
+async function uploadRequests() {
 
-    const solicitudesTableBody = document.querySelector("#solicitudesTable tbody");
+    const requestTableBody = document.querySelector("#solicitudesTable tbody");
 
-    solicitudesTableBody.innerHTML = `
+    requestTableBody.innerHTML = `
         <tr>
             <td colspan="4" class="text-center">Cargando solicitudes...</td>
         </tr>
@@ -656,7 +726,7 @@ async function cargarSolicitudes() {
             throw new Error(result.error || "Error al cargar las solicitudes");
         }
 
-        solicitudesTableBody.innerHTML = "";
+        requestTableBody.innerHTML = "";
 
         result.data.forEach((solicitud) => {
             const row = document.createElement("tr");
@@ -679,7 +749,7 @@ async function cargarSolicitudes() {
         `;
            
         
-            solicitudesTableBody.appendChild(row);
+            requestTableBody.appendChild(row);
         });
 
         document.querySelectorAll(".aceptar-btn").forEach((btn) => {
@@ -687,8 +757,8 @@ async function cargarSolicitudes() {
                 const username = event.target.getAttribute("data-username");
                 const type = event.target.getAttribute("data-type");
                 if (username) {
-                    await aceptarSolicitud(username,type); 
-                    cargarSolicitudes(); 
+                    await acceptRequest(username,type); 
+                    uploadRequests(); 
                 }
             });
         });
@@ -697,14 +767,14 @@ async function cargarSolicitudes() {
             btn.addEventListener("click", async (event) => {
                 const username = event.target.getAttribute("data-username");
                 if (username) {
-                    await rechazarSolicitud(username);
-                    cargarSolicitudes(); 
+                    await declineRequest(username);
+                    uploadRequests(); 
                 }
             });
         });
     } catch (error) {
         
-        solicitudesTableBody.innerHTML = `
+        requestTableBody.innerHTML = `
             <tr>
                 <td colspan="4" class="text-center text-danger">❌ Error: ${error.message}</td>
             </tr>
@@ -956,11 +1026,8 @@ async function fetchRepoContent() {
     }
 }
 
-
-
-cabecera();
+header();
 footer();
-
 
 if (window.location.pathname === '/index.html'||window.location.pathname === '/aprendizaje.html') {
     document.querySelectorAll(".dropdown-item-activity").forEach(item => {
@@ -973,7 +1040,7 @@ if (window.location.pathname === '/index.html'||window.location.pathname === '/a
 }
 
 if (window.location.pathname === '/admin.html') {
-    cargarSolicitudes();
+    uploadRequests();
 }
 
 const ContenidoRepositorio = document.getElementById('repositorio');
@@ -986,24 +1053,29 @@ if (btnConsulta) {
   btnConsulta.addEventListener("click", stackai);
 }
 
+const btnConsultaOpen = document.getElementById("btn-consulta-open");
+if (btnConsultaOpen) {
+  btnConsultaOpen.addEventListener("click", stackaiOpen);
+}
+
 const btnProfesorWord = document.getElementById("btn-profesorword");
 if (btnProfesorWord) {
-  btnProfesorWord.addEventListener("click", Profesor_Word);
+  btnProfesorWord.addEventListener("click", Teacher_Word);
 }
 
 const btnProfesorPdf = document.getElementById("btn-profesorpdf");
 if (btnProfesorPdf) {
-  btnProfesorPdf.addEventListener("click", Profesor_PDF);
+  btnProfesorPdf.addEventListener("click", Teacher_PDF);
 }
 
 const btnAlumnoWord = document.getElementById("btn-alumnoword");
 if (btnAlumnoWord) {
-  btnAlumnoWord.addEventListener("click", Alumno_Word);
+  btnAlumnoWord.addEventListener("click", Student_Word);
 }
 
 const btnAlumnoPdf = document.getElementById("btn-alumnopdf");
 if (btnAlumnoPdf) {
-  btnAlumnoPdf.addEventListener("click", Alumno_PDF);
+  btnAlumnoPdf.addEventListener("click", Student_PDF);
 }
 
 const uploadBtn = document.getElementById("uploadButton");
@@ -1013,43 +1085,43 @@ if (uploadBtn) {
 
 const btnReporte = document.getElementById("btn-reporte");
 if (btnReporte) {
-  btnReporte.addEventListener("click", mostrarPopupsReporte);
+  btnReporte.addEventListener("click", showPopUpReport);
 }
 
 const btnScanner = document.getElementById("btn-scanner");
 if (btnScanner) {
-    btnScanner.addEventListener("click", mostrarPopupsScanner);
+    btnScanner.addEventListener("click", showPopUpScanner);
 }
 
 const btnCerrarReporte = document.getElementById("btn-cerrar-reporte");
 if (btnCerrarReporte) {
-  btnCerrarReporte.addEventListener("click", cerrarPopupReporte);
+  btnCerrarReporte.addEventListener("click", closePopUpReport);
 }
 
 const btnCerrarSolicitudGestor = document.getElementById("btn-cerrar-solicitud-gestor");
 if (btnCerrarSolicitudGestor) {
-    btnCerrarSolicitudGestor.addEventListener("click", cerrarPopupSolicitudGestor);
+    btnCerrarSolicitudGestor.addEventListener("click", closePopUpManagerRequest);
 }
 
 const btnCerrarSolicitud = document.getElementById("btn-cerrar-solicitud");
 if (btnCerrarSolicitud) {
-  btnCerrarSolicitud.addEventListener("click", cerrarPopupSolicitud);
+  btnCerrarSolicitud.addEventListener("click", closePopUpRequest);
 }
 
-const btnEnviarSolicitud = document.getElementById("btn-enviar-solicitud");
-if (btnEnviarSolicitud) {
-  btnEnviarSolicitud.addEventListener("click", enviarSolicitud);
+const btnsendRequest = document.getElementById("btn-enviar-solicitud");
+if (btnsendRequest) {
+  btnsendRequest.addEventListener("click", sendRequest);
 }
 
-const btnEnviarSolicitudGestor = document.getElementById("btn-enviar-solicitud-gestor");
-if (btnEnviarSolicitudGestor) {
-  btnEnviarSolicitudGestor.addEventListener("click", enviarSolicitudGestor);
+const btnsendRequestManager = document.getElementById("btn-enviar-solicitud-gestor");
+if (btnsendRequestManager) {
+  btnsendRequestManager.addEventListener("click", sendRequestManager);
 }
 
 
 const btnEnviarReporte = document.getElementById("btn-enviar-reporte");
 if (btnEnviarReporte) {
-  btnEnviarReporte.addEventListener("click", generarReportePDF);  
+  btnEnviarReporte.addEventListener("click", generatePDFReport);  
 }
 
 const loginForm = document.getElementById('loginForm');

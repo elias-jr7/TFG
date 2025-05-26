@@ -9,14 +9,14 @@ app.route('/api', users)
 app.use('/*', serveStatic({ root: './src' }))
 
 const Token1 = process.env.STACK_API_TOKEN;
-const Token3 = process.env.GITHUB_REPORT_TOKEN;
-const Token4 = process.env.GITHUB_BD_TOKEN;
+const Token2 = process.env.GITHUB_REPORT_TOKEN;
+const Token3 = process.env.GITHUB_BD_TOKEN;
 
 app.get('/api/tokens', (ctx) => {
   return ctx.json({
     stack_token: Token1,
-    reporte_token: Token3,
-    bd_token: Token4
+    reporte_token: Token2,
+    bd_token: Token3
   })
 })
 
