@@ -362,7 +362,7 @@ function Student_PDF() {
         return;
     }
 
-    const index = answerHTML.indexOf("Respuesta de la actividad");
+    const index = answerHTML.indexOf("Respuestas de la actividad:");
     if (index !== -1) {
         answerHTML = answerHTML.substring(0, index); 
     }
